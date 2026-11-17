@@ -1,0 +1,42 @@
+name: Łowiska Mazowsze – publikacja gotowych raportów
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - '.github/workflows/publikuj.yml'
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: lowiska-publikacja
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Pobierz gotowe raporty
+        uses: actions/checkout@v4
+
+      - name: Skonfiguruj GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Przygotuj pliki strony
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+      - name: Opublikuj stronę
+        id: deployment
+        uses: actions/deploy-pages@v4

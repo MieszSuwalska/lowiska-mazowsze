@@ -1,0 +1,45 @@
+name: Jednorazowe czyszczenie historii publicznej
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  wyczysc:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pobierz aktualną publiczną wersję
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Sprawdź pliki i utwórz nową historię
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f site/index.html
+          test -f site/archiwum.html
+          test -f .github/workflows/publikuj.yml
+          test ! -f generate.py
+          test "$(git branch --show-current)" = "main"
+
+          OLD_HEAD="$(git rev-parse HEAD)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Nowy początek historii zachowuje dokładnie obecną zawartość plików.
+          git checkout --orphan nowa-historia
+          git rm -r --cached --ignore-unmatch . >/dev/null
+          git add -A
+          if git ls-files | grep -qx 'generate.py'; then
+            echo "BŁĄD: generator znalazł się w publicznej wersji."
+            exit 1
+          fi
+          git commit -m "Publiczne raporty – czysta historia bez kodu generatora"
+
+          # Zabezpieczenie przed nadpisaniem nowych raportów z równoległego zadania.
+          git push --force-with-lease="refs/heads/main:$OLD_HEAD" origin HEAD:refs/heads/main
