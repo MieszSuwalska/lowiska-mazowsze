@@ -45,6 +45,8 @@ nav,.meta,.legend{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}nav a,.tag{
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:7px}
 .good{background:var(--green)}.warn{background:var(--yellow)}.bad{background:var(--red)}.unknown{background:#9eafbf}
 .legend span{font-size:13px;line-height:1.5;padding:5px 0}a{color:#9dddff}
+.stale-warning{margin:12px 0;padding:12px 14px;border:1px solid #ff8393;background:rgba(255,97,119,.12);border-radius:12px;color:#ffc0ca;font-weight:750;font-size:14px}.stale-warning[hidden]{display:none}
+
 .update-panel{margin:14px 0 20px;padding:14px 16px;border:1px solid #344455;border-radius:16px;background:#141e2a}
 .update-top{display:flex;justify-content:space-between;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:10px}
 .update-title{font-weight:800;font-size:15px}.update-date{font-size:12px;color:#9fb1c0}
@@ -84,7 +86,7 @@ nav,.meta,.legend{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}nav a,.tag{
     if(document.visibilityState==="visible" && Date.now()-stamp>30000){fresh();}
   });
 })();
-</script></head><body><main><div class="overline">ŁOWISKA MAZOWSZE · GOTOWY RAPORT</div><h1>Prognoza na 3 dni</h1><nav><a href="index.html">Raport bieżący</a><a href="archiwum.html">Archiwum</a></nav><div class="meta"><span class="tag">Źródło: Open-Meteo</span><span class="tag">Dni: 2026-11-20 – 2026-11-22</span><span class="tag">Wygenerowano: 20.11.2026 08:25 CET</span><span class="tag">Wiatr: m/s</span></div><section class="update-panel" id="update-panel"><div class="update-top"><span class="update-title">Dzisiejsze aktualizacje prognozy</span><span class="update-date" id="update-date"></span></div><div class="update-grid" id="update-grid"><div class="update-cell">Sprawdzanie…</div></div><div class="update-note">Zielony oznacza potwierdzoną publikację automatyczną. Uruchomienia ręczne nie są liczone. <a href="status.html">Szczegóły</a></div></section><script>
+</script></head><body><main><div class="overline">ŁOWISKA MAZOWSZE · GOTOWY RAPORT</div><h1>Prognoza na 3 dni</h1><nav><a href="index.html">Raport bieżący</a><a href="archiwum.html">Archiwum</a></nav><div class="meta" data-report-day="2026-11-19"><span class="tag">Źródło: Open-Meteo</span><span class="tag">Dni: 2026-11-20 – 2026-11-22</span><span class="tag">Wygenerowano: 20.11.2026 08:25 CET</span><span class="tag">Wiatr: m/s</span></div><div class="stale-warning" id="stale-warning" hidden>UWAGA: raport nie został dzisiaj wygenerowany. Dane pogodowe pochodzą z poprzedniego dnia. Sprawdź godzinę „Wygenerowano”.</div><section class="update-panel" id="update-panel"><div class="update-top"><span class="update-title">Dzisiejsze aktualizacje prognozy</span><span class="update-date" id="update-date"></span></div><div class="update-grid" id="update-grid"><div class="update-cell">Sprawdzanie…</div></div><div class="update-note">Zielony oznacza potwierdzoną publikację automatyczną. Uruchomienia ręczne nie są liczone. <a href="status.html">Szczegóły</a></div></section><script>
 (function(){
  var hours=["05","10","12","14"];
  function warsaw(){
@@ -98,6 +100,9 @@ nav,.meta,.legend{display:flex;flex-wrap:wrap;gap:10px;margin:15px 0}nav a,.tag{
    var grid=document.getElementById("update-grid");
    if(!grid)return;
    document.getElementById("update-date").textContent=w.day;
+   var oldDay=document.querySelector(".meta")?.getAttribute("data-report-day");
+   var banner=document.getElementById("stale-warning");
+   if(banner)banner.hidden=!oldDay||oldDay>=w.day;
    grid.innerHTML=hours.map(function(h){
       var stamp=typeof values[h]==="string"?values[h]:"";
       var done=Boolean(stamp);
