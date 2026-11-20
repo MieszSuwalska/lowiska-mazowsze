@@ -185,4 +185,17 @@
     }
   }
   button.addEventListener("click",refresh);
+  // Niezależnie od harmonogramu GitHub pobierz dane przy otwarciu strony.
+  // Ponów po powrocie do aplikacji, gdy od poprzedniej próby minęło 30 minut.
+  let lastAttempt=0;
+  async function autoRefresh() {
+    if(button.disabled || Date.now()-lastAttempt<30*60*1000)return;
+    lastAttempt=Date.now();
+    await refresh();
+  }
+  if(document.readyState==="complete")autoRefresh();
+  else window.addEventListener("load",autoRefresh,{once:true});
+  document.addEventListener("visibilitychange",function(){
+    if(document.visibilityState==="visible")autoRefresh();
+  });
 })();
