@@ -35,12 +35,15 @@
   };
   function classify(x) {
     if (!x) return ["unknown","Brak danych",[]];
-    const [t,w,g,r] = x, causes=[];
+    const [t,w,g,r,secondary] = x, causes=[];
+    const conflict=Number.isFinite(secondary) && (r>0)!==(secondary>0);
     if(t<6) causes.push("Temperatura poniżej 6°C");
-    if(r>0) causes.push("Prognozowane opady");
+    if(conflict)causes.push("Rozbieżne prognozy: ICON "+format(r)+" mm, ECMWF "+format(secondary)+" mm");
+    else if(r>0)causes.push("Opady według ICON"+(Number.isFinite(secondary)&&secondary>0?" i ECMWF":""));
     if(w>7 || g>=10) causes.push("Silny wiatr lub porywy");
     else if(w>4) causes.push("Podwyższony wiatr");
-    if(t<6 || r>0 || w>7 || g>=10) return ["bad","Wyklucza",causes];
+    if(t<6 || w>7 || g>=10 || (r>0&&!conflict)) return ["bad","Wyklucza",causes];
+    if(conflict) return ["warn","Prognozy sprzeczne",causes];
     if(w>4) return ["warn","Zagrożenie",causes];
     return ["good","W normie",causes];
   }
@@ -56,14 +59,20 @@
     };
     const t=take("temperature_2m"),w=take("wind_speed_10m");
     const g=take("wind_gusts_10m"),r=take("precipitation");
-    return t&&w&&g&&r ? [(t[0]+t[1])/2,(w[0]+w[1])/2,Math.max(...g),r[0]+r[1]] : null;
+    let secondary=null;
+    const alt=hourly.ecmwf;
+    if(alt&&Array.isArray(alt.time)&&Array.isArray(alt.precipitation)) {
+      const i2=alt.time.indexOf(ts1),j2=alt.time.indexOf(ts2);
+      if(i2>=0&&j2>=0&&Number.isFinite(alt.precipitation[i2])&&Number.isFinite(alt.precipitation[j2]))secondary=alt.precipitation[i2]+alt.precipitation[j2];
+    }
+    return t&&w&&g&&r ? [(t[0]+t[1])/2,(w[0]+w[1])/2,Math.max(...g),r[0]+r[1],secondary] : null;
   }
   function mini(start,x) {
     const [state,caption] = classify(x);
     const tip=x
       ? String(start).padStart(2,"0")+":00–"+String(start+2).padStart(2,"0")+
         ":00 | Temp.: "+format(x[0])+"°C | Wiatr: "+format(x[1])+
-        " m/s | Porywy: "+format(x[2])+" m/s | Opady: "+format(x[3])+" mm / 2 godz."
+        " m/s | Porywy: "+format(x[2])+" m/s | ICON: "+format(x[3])+" mm | ECMWF: "+(Number.isFinite(x[4])?format(x[4])+" mm":"brak danych")
       : "Brak danych";
     return '<div class="mini-slot mini-'+state+'" title="'+escape(tip)+'"><div class="mini-time">'+
       String(start).padStart(2,"0")+"–"+String(start+2).padStart(2,"0")+
@@ -79,14 +88,16 @@
     if(!x) {
       html+='<div class="metric txt-unknown">Brak prognozy godzinowej; ocena niemożliwa.</div>';
     } else {
-      const [t,w,g,r]=x;
+      const [t,w,g,r,secondary]=x;
+      const conflict=Number.isFinite(secondary)&&(r>0)!==(secondary>0);
       html+=metric("Temperatura",format(t)+"°C",t<6?"bad":"good");
       html+=metric("Wiatr",format(w)+" m/s",w>7||g>=10?"bad":w>4?"warn":"good");
       html+=metric("Porywy",format(g)+" m/s",g>=10?"bad":w>4?"warn":"good");
-      html+=metric("Opady",format(r)+" mm / 2 godz.",r>0?"bad":"good");
+      html+=metric("Opady ICON",format(r)+" mm / 2 godz.",conflict?"warn":r>0?"bad":"good");
+      html+=metric("Opady ECMWF",Number.isFinite(secondary)?format(secondary)+" mm / 2 godz.":"brak danych",conflict?"warn":!Number.isFinite(secondary)?"unknown":secondary>0?"bad":"good");
       if(r>0) {
         const kind=r>=5?"bardzo duże":r>=2?"duże":r>=0.5?"umiarkowane":"małe";
-        html+='<div class="metric txt-bad"><strong>Deszcz: '+kind+' opady</strong></div>';
+        html+='<div class="metric txt-'+(conflict?"warn":"bad")+'"><strong>ICON przewiduje: '+kind+' opady</strong></div>';
       }
     }
     html+='<div class="slot-status txt-'+state+'"><i class="dot '+state+'"></i>'+caption+'</div>';
@@ -99,7 +110,7 @@
       states.includes("warn")?"warn":"good";
     const summary=state==="bad"?"Występują warunki wykluczające":
       state==="unknown"?"Brak pełnej prognozy":
-      state==="warn"?"Występują zagrożenia":"Wszystko w normie";
+      state==="warn"?"Występują zagrożenia lub rozbieżności prognoz":"Wszystko w normie";
     return '<details class="day-card day-'+state+'"'+(open?' open':'')+
       '><summary class="day-head"><div class="day-top"><span class="day-badge badge-'+state+'">'+
       dayLabel(day)+'</span><span class="day-summary txt-'+state+'">'+summary+
@@ -108,22 +119,27 @@
       hours.map((h,i)=>slot(h,slots[i])).join("")+'</div></div></details>';
   }
   async function getForecast(place) {
-    const url=new URL("https://api.open-meteo.com/v1/forecast");
-    url.search=new URLSearchParams({
-      latitude:String(place.lat), longitude:String(place.lon),
-      hourly:"temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m",
-      wind_speed_unit:"ms",timezone:"Europe/Warsaw",forecast_days:"3"
-    }).toString();
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),25000);
-    try {
-      const response=await fetch(url.toString(),{cache:"no-store",signal:controller.signal});
-      if(!response.ok) throw Error("Open-Meteo HTTP "+response.status);
-      const data=await response.json();
-      const h=data.hourly;
-      if(!h || !Array.isArray(h.time) || !h.time.length) throw Error("Brak danych godzinowych");
-      return h;
-    } finally {clearTimeout(timeout);}
+    async function one(model,variables) {
+      const url=new URL("https://api.open-meteo.com/v1/forecast");
+      url.search=new URLSearchParams({
+        latitude:String(place.lat),longitude:String(place.lon),
+        hourly:variables,models:model,
+        wind_speed_unit:"ms",timezone:"Europe/Warsaw",forecast_days:"3"
+      }).toString();
+      const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),25000);
+      try {
+        const res=await fetch(url.toString(),{cache:"no-store",signal:controller.signal});
+        if(!res.ok)throw Error(model+" HTTP "+res.status);
+        const data=await res.json();
+        if(!data.hourly||!Array.isArray(data.hourly.time))throw Error("Brak danych "+model);
+        return data.hourly;
+      }finally{clearTimeout(timeout);}
+    }
+    const main=await one("icon_eu","temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m");
+    let ecmwf=null;
+    try {ecmwf=await one("ecmwf_ifs025","precipitation");}
+    catch(err){console.warn("ECMWF niedostępny",err);}
+    return {...main,ecmwf};
   }
   async function refresh() {
     button.disabled=true;
