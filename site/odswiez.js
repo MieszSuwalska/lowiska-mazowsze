@@ -127,7 +127,7 @@
   }
   async function refresh() {
     button.disabled=true;
-    button.textContent="Pobieranie prognozy…";
+    button.textContent="Pobieranie…";
     message.textContent="Pobieram aktualne dane Open-Meteo dla trzech łowisk…";
     message.className="manual-feedback";
     try {
@@ -165,7 +165,7 @@
       message.className="manual-feedback error";
     } finally {
       button.disabled=false;
-      button.textContent="↻ Pobierz aktualną prognozę";
+      button.textContent="↻ Odśwież";
     }
   }
   button.addEventListener("click",refresh);
