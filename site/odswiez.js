@@ -135,10 +135,10 @@
         return data.hourly;
       }finally{clearTimeout(timeout);}
     }
-    const main=await one("icon_eu","temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m");
-    let ecmwf=null;
-    try {ecmwf=await one("ecmwf_ifs025","precipitation");}
-    catch(err){console.warn("ECMWF niedostępny",err);}
+    const [main,ecmwf]=await Promise.all([
+      one("icon_eu","temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m"),
+      one("ecmwf_ifs025","precipitation")
+    ]);
     return {...main,ecmwf};
   }
   async function refresh() {
@@ -157,10 +157,12 @@
         const oldOpen=Array.from(sections[i].querySelectorAll(".day-card")).map(el=>el.open);
         return [0,1,2].map(j=>{
           const day=addDays(base,j);
-          return dayCard(day,hours.map(h=>sample(hourly,day,h)),Boolean(oldOpen[j]));
+          const slots=hours.map(h=>sample(hourly,day,h));
+          if(slots.some(value=>!value || !Number.isFinite(value[4])))
+            throw Error("Brak pełnej prognozy ICON lub ECMWF.");
+          return dayCard(day,slots,Boolean(oldOpen[j]));
         }).join("");
       });
-      if(!htmls.some(s=>s.includes('slot-'))) throw Error("Nie otrzymano prognozy.");
       sections.forEach((sec,i)=>{sec.querySelector(".days").innerHTML=htmls[i];});
       const meta=document.querySelector(".meta");
       if(meta) {
