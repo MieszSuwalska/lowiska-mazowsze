@@ -1,6 +1,25 @@
 {
   "data": "2026-11-21",
-  "automatyczne": {
-    "05": "2026-11-21 11:53:10 CET"
-  }
+  "automatyczne": {},
+  "publikacje": {
+    "2026-11-21": {
+      "test-44929350111-1": {
+        "potwierdzono": "2026-11-21T18:19:21.571245+01:00",
+        "commit": "e8eee7aadee2accc218253d2b187f55d551ca288",
+        "uruchomienie": "44929350111",
+        "proba": "1",
+        "archiwum": "raporty/2026-11-21-test-44929350111-1.html",
+        "modele": [
+          "icon_eu",
+          "ecmwf_ifs025"
+        ],
+        "lowiska": [
+          "Jezioro Dziekanowskie",
+          "Łowisko Jegiel",
+          "Łowisko Specjalne Okoń"
+        ]
+      }
+    }
+  },
+  "ostatni_test": "2026-11-21T18:19:21.571245+01:00"
 }
