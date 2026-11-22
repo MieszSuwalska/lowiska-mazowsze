@@ -1,4 +1,4 @@
-/* Łowiska Mazowsze — aktualizacja przy otwarciu i na żądanie.
+/* Łowiska Mazowsze — ręczne odświeżanie prognoz tylko na tym urządzeniu.
    Nie używa tokenu GitHub ani prywatnego generatora. */
 (function () {
   "use strict";
@@ -141,7 +141,7 @@
     ]);
     return {...main,ecmwf};
   }
-  async function refresh(mode = "manual") {
+  async function refresh() {
     button.disabled=true;
     button.textContent="Pobieranie…";
     message.textContent="Pobieram aktualne dane Open-Meteo dla trzech łowisk…";
@@ -169,14 +169,14 @@
         meta.setAttribute("data-report-day",base);
         const tags=meta.querySelectorAll(".tag");
         if(tags[1])tags[1].textContent="Dni: "+base+" – "+addDays(base,2);
-        if(tags[2])tags[2].textContent="Dane pobrano "+(mode==="auto"?"przy uruchomieniu":"ręcznie")+": "+localStamp()+" CET/CEST";
+        if(tags[2])tags[2].textContent="Dane pobrano ręcznie: "+localStamp()+" CET/CEST";
       }
       const warning=document.getElementById("stale-warning");
       if(warning)warning.hidden=true;
       const source=document.querySelector('a[href="https://open-meteo.com/en/docs"]');
       if(source&&source.parentElement)
-        source.parentElement.innerHTML='<a href="https://open-meteo.com/en/docs">Open-Meteo — prognozy godzinowe</a> · pobrano '+(mode==="auto"?"przy uruchomieniu":"ręcznie")+' '+escape(localStamp());
-      message.textContent="✓ Aktualne prognozy pobrane "+(mode==="auto"?"przy uruchomieniu":"ręcznie")+" dla 3 łowisk: "+localStamp()+". Wyniki są widoczne na tym urządzeniu; nie zmieniają raportu na GitHub.";
+        source.parentElement.innerHTML='<a href="https://open-meteo.com/en/docs">Open-Meteo — prognozy godzinowe</a> · pobrano ręcznie '+escape(localStamp());
+      message.textContent="✓ Aktualne prognozy pobrane dla 3 łowisk: "+localStamp()+". Wyniki są widoczne na tym urządzeniu; nie zmieniają raportu na GitHub.";
       message.className="manual-feedback ok";
     } catch(error) {
       message.textContent="Nie udało się pobrać nowych danych ("+error.message+"). Pozostawiono ostatni opublikowany raport. Spróbuj ponownie.";
@@ -186,11 +186,5 @@
       button.textContent="↻ Odśwież";
     }
   }
-  button.addEventListener("click",()=>refresh("manual"));
-  // Każde otwarcie strony pobiera nowe prognozy. Powrót z tła również.
-  if(document.readyState==="complete")refresh("auto");
-  else window.addEventListener("load",()=>refresh("auto"),{once:true});
-  document.addEventListener("visibilitychange",()=>{
-    if(document.visibilityState==="visible" && !button.disabled)refresh("auto");
-  });
+  button.addEventListener("click",refresh);
 })();
