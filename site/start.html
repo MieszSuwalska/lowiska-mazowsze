@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Łowiska Mazowsze</title><meta name="apple-mobile-web-app-title" content="Łowiska Mazowsze">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
+<meta http-equiv="Cache-Control" content="no-store">
+<style>body{background:#0b1119;color:#f1f6fb;font:18px system-ui,sans-serif;padding:2rem}</style>
+</head><body><p>Uruchamianie aktualnego raportu Łowiska Mazowsze…</p>
+<script>
+(function(){
+  var url=new URL("./index.html",location.href);
+  url.searchParams.set("uruchomienie",String(Date.now()));
+  location.replace(url.href);
+})();
+</script>
+<noscript><a href="./index.html">Otwórz raport</a></noscript>
+</body></html>
