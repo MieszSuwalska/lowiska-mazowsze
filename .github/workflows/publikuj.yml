@@ -2,11 +2,6 @@ name: Łowiska Mazowsze – publikacja gotowych raportów
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'site/**'
-      - '.github/workflows/publikuj.yml'
 
 permissions:
   contents: read
